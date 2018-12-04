@@ -38,7 +38,15 @@ new_hike_data <- radnor_interpolated %>%
 
 
 #Here, I load a map with the raster package:
-localtif <- raster::raster("data/USGS_NED_13_n37w087_IMG.img")
+localtif <- raster::raster("data/USGS_NED_13_n37w087_IMG.img") %>% 
+  projectRaster(crs = '+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs') 
+
+# write_rds(localtif, 'data/projected_1meter.rds')
+
+# localtif2 <- raster::raster("data/USGS_NED_one_meter_x51y400_TN_Eastern_2_16_B16_Del1_2016_IMG_2017.img")
+
+
+
 
 # new_extent <- extent(-86.814364,-86.779664, 36.03867,36.073216)
 lon_range <- range(radnor_hike$lon)
@@ -91,7 +99,7 @@ add_gps_to_rayshader(
   ground_shadow = FALSE
 )
 
-shaded_map %>% write_png()
+# shaded_map %>% write_png()
 
 
 ggplot(radnor_hike, aes(x = lon, y = lat, color = ele)) + 
@@ -104,17 +112,19 @@ ggplot(radnor_hike, aes(x = lon, y = lat, color = ele)) +
 
 hike_cell_locs <- raster::cellFromXY(cropped_tif, hike_locations) 
 
-cropped_tif[hike_cell_locs] <- cropped_tif[hike_cell_locs] + 250
+
+extruded_tif <- cropped_tif
+extruded_tif[hike_cell_locs] <- extruded_tif[hike_cell_locs] + 15
 
 
-elmat_ridge = matrix(raster::extract(cropped_tif,raster::extent(cropped_tif),buffer=1000),
-               nrow=ncol(cropped_tif),ncol=nrow(cropped_tif))
+elmat_ridge = matrix(raster::extract(extruded_tif,raster::extent(extruded_tif),buffer=1000),
+               nrow=ncol(extruded_tif),ncol=nrow(extruded_tif))
 
 shaded_map <- elmat_ridge %>%
   sphere_shade(sunangle = 45, texture = "imhof1")
 
 shaded_map %>%
-  plot_3d(elmat, zscale = zscale)
+  plot_3d(elmat_ridge, zscale = zscale)
 
 save_3dprint("radnor_3d.stl", maxwidth = 4, unit = "in")
 
